@@ -43,7 +43,10 @@ fn main() {
     let mut file_content: String = String::new();
     file.read_to_string(&mut file_content).expect("There was an error reading the file");
 
-    let _: Vec<Lexem> = lexer(file_content);
+    let lexems: Vec<Lexem> = lexer(file_content);
+    let instructions: Vec<Instruction> = parser(lexems);
+
+    run(&instructions, &mut vec![0; 1024], &mut 512);
 }
 
 fn lexer(file_content: String) -> Vec<Lexem> {
@@ -109,6 +112,28 @@ fn parser(lexems: Vec<Lexem>) -> Vec<Instruction> {
     }
 
     return instructions;
+}
+
+fn run(instructions: &Vec<Instruction>, tape: &mut Vec<u8>, cell: &mut usize) {
+    for instr in instructions {
+        match instr {
+            Instruction::NextCell => *cell += 1,
+            Instruction::PreviousCell => *cell -= 1,
+            Instruction::Increment => tape[*cell] += 1,
+            Instruction::Decrement => tape[*cell] -= 1,
+            Instruction::Write => print!("{}", tape[*cell] as char),
+            Instruction::Read => {
+                let mut input: [u8; 1] = [0; 1];
+                std::io::stdin().read_exact(&mut input).expect("Failed to read stdin (only one character is accepted");
+                tape[*cell] = input[0];
+            }
+            Instruction::Loop(nested_instructions) => {
+                while tape[*cell] != 0 {
+                    run(&nested_instructions, tape, cell);
+                }
+            }
+        }
+    }
 }
 
 #[test]
